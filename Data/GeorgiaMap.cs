@@ -1,0 +1,44 @@
+﻿using SearchAlgorithms.Models;
+
+namespace SearchAlgorithms.Data {
+    public static class GeorgiaMap {
+        public static List<City> Cities = new() {
+            new City("Tbilisi", 41.7225, 44.7925),
+            new City("Telavi", 41.9167, 45.4833),
+            new City("Rustavi", 41.5333, 45),
+            new City("Sagarejo", 41.7333, 45.3333),
+            new City("Gurjaani", 41.75, 45.8),
+            new City("Signaghi", 41.62, 45.9217),
+            new City("Lagodekhi", 41.825, 46.275),
+            new City("Kvareli", 41.95, 45.8167),
+            new City("Bolnisi", 41.45, 44.5417)
+            new City("Mtskheta", 41.85, 44.7167),
+            new City("Dusheti", 42.0833, 44.7),
+            new City("Stepantsminda", 42.6575, 44.6433),
+            new City("Gori", 41.9817, 44.1111),
+            new City("Khashuri", 42, 43.6),
+            new City("Tskhinvali", 42.2256, 43.9703),
+            new City("Borjomi", 41.8389, 43.3792),
+            new City("Akhaltsikhe", 41.6389, 42.9861),
+            new City("Akhalkalaki", 41.4056, 43.4861),
+            new City("Ninotsminda", 41.2639, 43.5917),
+            new City("Kutasi", 42.25, 42.7),
+            new City("Zestaponi", 42.1083, 43.0417),
+            new City("Sachkhere", 42.3414, 43.4117),
+            new City("Ambrolauri", 42.5178, 43.1514),
+            new City("Oni", 42.5833, 43.45),
+            new City("Samtredia", 42.1625, 42.3417),
+            new City("Ozurgeti", 41.9269, 41.9961),
+            new City("Zugdidi", 42.5083, 41.8708),
+            new City("Mestia", 43.0458, 42.7278),
+            new City("Poti", 42.1428, 41.6722),
+            new City("Senaki", 42.2689, 42.0678),
+            new City("Batumi", 41.6458, 41.6417),
+            new City("Kobuleti", 41.8111, 41.7753),
+            new City("Ochamchire", 42.7125, 41.4686),
+            new City("Sokhumi", 43.0014, 41.0233),
+            new City("Gudauta", 43.1033, 40.6475),
+            new City("Gagra", 43.2786, 40.2712),
+        };
+    }
+}
