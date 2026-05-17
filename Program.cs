@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using SearchAlgorithms.Services;
 
 namespace SearchAlgorithms {
     public class Program {
@@ -9,6 +10,8 @@ namespace SearchAlgorithms {
             builder.RootComponents.Add<HeadOutlet>("head::after");
 
             builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+            builder.Services.AddScoped<BreadthFirstSearch>();
+            builder.Services.AddScoped<IterativeDeepeningBidirectionalDFS>();
 
             await builder.Build().RunAsync();
         }
