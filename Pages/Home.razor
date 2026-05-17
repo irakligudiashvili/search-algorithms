@@ -48,7 +48,7 @@
 
 	<div style="display: flex; gap: 20px; width: 100%; align-items: stretch; flex-wrap: wrap;">
 		<div style="flex: 3; min-width: 600px; background-color: #111; border: 1px solid #333; border-radius: 8px; overflow: hidden; aspect-ratio: 1920 / 1023;">
-			<svg width="100%" height="100%" viewBox="0 0 @MapWidth @MapHeight" preserveAspectRatio="xMidYMid meet" x="0" y="0">
+			<svg width="100%" height="100%" viewBox="0 0 @MapWidth @MapHeight" preserveAspectRatio="xMidYMid meet" x="0" y="0" @onpointerup="HandlePointerUp" @onpointermove="HandlePointerMove" @onpointerleave="HandlePointerUp" ref="SvgContainerReference">
 				<image href="images/georgia.png"
 				width="@MapWidth"
 				height="@MapHeight"
@@ -67,11 +67,28 @@
 
 						bool isPathSegment = IsRoadInPath(road.StartCity, road.EndCity);
 
-						<path d="M @posA.X @posA.Y Q @road.ControlX @road.ControlY @posB.X @posB.Y"
+						<path
+						d="M @posA.X @posA.Y Q @road.ControlX @road.ControlY @posB.X @posB.Y"
 						fill="none"
 						stroke="@(isPathSegment ? "#198754" : "#555")"
 						stroke-width="3"
-						stroke-dasharray="6,6" />
+						stroke-dasharray="6,6"
+						style="pointer-events: none"
+						/>
+
+						double handleX = 0.25 * posA.X + 0.5 * road.ControlX + 0.25 * posB.X;
+						double handleY = 0.25 * posA.Y + 0.5 * road.ControlY + 0.25 * posB.Y;
+
+						<circle 
+						cx="@handleX"
+					    cy="@handleY"
+						r="6"
+						fill="@(isPathSegment ? "#FFC107" : "#aaa")"
+						stroke="white"
+						stroke-width="1"
+						style="cursor: move;"
+						@onpointerdown="(e) => HandlePointerDown(e, road, cityA, cityB)"
+						/>
 					}
 				}
 
@@ -116,6 +133,10 @@
 					<span class="text-white fw-bold" style="font-size: 24px">Execution Time</span>
 					<strong style="font-size: 24px; color: #0dcaf0;">@Result.ExecutionTime.TotalMilliseconds.ToString("F3") ms</strong>
 				</div>
+				<div style="display: flex; flex-direction: column; gap: 5px">
+					<span class="text-white fw-bold" style="font-size: 24px">Total Distance</span>
+					<strong style="font-size: 24px; color: #198754;">@Result.TotalDistance.ToString("F2")</strong>
+				</div>
 				<hr style="margin: 0; border-color: #333;" />
 			} else {
 				<div class="text-center my-auto text-white fw-bold" style="font-style: italic; font-size: 14px;">
@@ -140,6 +161,12 @@
 	private string TargetCity { get; set; } = "";
 	private SearchResult Result { get; set; }
 	private string ActiveEngineName { get; set; } = "";
+
+	private Road SelectedDraggingRoad { get; set; }
+	private City AssociatedCityA { get; set; }
+	private City AssociatedCityB { get; set; }
+
+	private ElementReference SvgContainerReference;
 
 	private void RunSearch() {
 		if(!string.IsNullOrEmpty(StartCity) && !string.IsNullOrEmpty(TargetCity)) {
@@ -176,6 +203,38 @@
 				road.ControlY = (posA.Y + posB.Y) / 2;
 			}
 		}
+	}
+
+	private void HandlePointerDown(PointerEventArgs eventArgs, Road road, City a, City b) {
+		SelectedDraggingRoad = road;
+		AssociatedCityA = a;
+		AssociatedCityB = b;
+	}
+
+	private void HandlePointerMove(PointerEventArgs e) {
+		if(SelectedDraggingRoad == null) {
+			return;
+		}
+
+		double scaleFactorX = (double)MapWidth / 1400;
+		double scaleFactorY = (double)MapHeight / 745;
+
+		SelectedDraggingRoad.ControlX += (e.MovementX * scaleFactorX) * 2;
+		SelectedDraggingRoad.ControlY += (e.MovementY * scaleFactorY) * 2;
+
+		SelectedDraggingRoad.ControlX = Math.Clamp(SelectedDraggingRoad.ControlX, 0, MapWidth);
+		SelectedDraggingRoad.ControlY = Math.Clamp(SelectedDraggingRoad.ControlY, 0, MapHeight);
+
+		var posA = Project(AssociatedCityA);
+		var posB = Project(AssociatedCityB);
+
+		SelectedDraggingRoad.RecalculateBezierDistance(posA.X, posA.Y, posB.X, posB.Y);
+	}
+
+	private void HandlePointerUp(PointerEventArgs e) {
+		SelectedDraggingRoad = null;
+		AssociatedCityA = null;
+		AssociatedCityB = null;
 	}
 
 	private bool IsRoadInPath(string city1, string city2) {

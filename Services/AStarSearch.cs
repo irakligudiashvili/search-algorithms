@@ -46,7 +46,12 @@ namespace SearchAlgorithms.Services {
                 foreach(var neighborName in GetNeighbors(current.Name)) {
                     var neighborCityData = GeorgiaMap.Cities.First(c => c.Name == neighborName);
 
-                    double edgeWeight = CalculateDistance(currentCityData, neighborCityData);
+                    var road = GeorgiaMap.Roads.FirstOrDefault(r =>
+                        (r.StartCity == current.Name && r.EndCity == neighborName) ||
+                        (r.StartCity == neighborName && r.EndCity == current.Name)
+                    );
+
+                    double edgeWeight = road != null ? road.Distance : CalculateDistance(currentCityData, neighborCityData);
                     double tentativeGScore = gScore[current.Name] + edgeWeight;
 
                     if(tentativeGScore < gScore[neighborName]) {
@@ -110,10 +115,23 @@ namespace SearchAlgorithms.Services {
             double distance = 0;
 
             for(int i = 0; i < path.Count - 1; i++) {
-                var cityA = GeorgiaMap.Cities.First(c => c.Name == path[i]);
-                var cityB = GeorgiaMap.Cities.First(c => c.Name == path[i + 1]);
+                string current = path[i];
+                string next = path[i + 1];
 
-                distance += CalculateDistance(cityA, cityB);
+                var road = GeorgiaMap.Roads.FirstOrDefault(r =>
+                    (r.StartCity == current && r.EndCity == next) ||
+                    (r.StartCity == next && r.EndCity == current)
+                );
+
+                if(road != null) {
+                    distance += road.Distance;
+                } else {
+
+                    var cityA = GeorgiaMap.Cities.First(c => c.Name == current);
+                    var cityB = GeorgiaMap.Cities.First(c => c.Name == next);
+
+                    distance += CalculateDistance(cityA, cityB);
+                }
             }
 
             return distance;
