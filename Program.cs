@@ -12,6 +12,7 @@ namespace SearchAlgorithms {
             builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
             builder.Services.AddScoped<BreadthFirstSearch>();
             builder.Services.AddScoped<IterativeDeepeningBidirectionalDFS>();
+            builder.Services.AddScoped<AStarSearch>();
 
             await builder.Build().RunAsync();
         }

@@ -4,6 +4,7 @@
 @using SearchAlgorithms.Services
 @inject BreadthFirstSearch BfsEngine
 @inject IterativeDeepeningBidirectionalDFS IdBiDfsEngine
+@inject AStarSearch AStarEngine
 
 <PageTitle>Search Algorithms</PageTitle>
 
@@ -14,8 +15,9 @@
 		<div>
 			<label class="me-2 fw-bold">Algorithm:</label>
 			<select @bind="SelectedAlgorithmKey" class="form-select bg-secondary text-white d-inline-block" style="width: 220px">
-				<option value="BFS">Breadth-First</option>
+				<option value="BFS">Breadth First Search</option>
 				<option value="ID_BIDS">ID-Bidirectional DFS</option>
+				<option value="ASTAR">A* Search</option>
 			</select>
 		</div>
 
@@ -147,6 +149,9 @@
 			} else if (SelectedAlgorithmKey == "ID_BIDS") {
 				Result = IdBiDfsEngine.FindPath(StartCity, TargetCity);
 				ActiveEngineName = IdBiDfsEngine.Name;
+			} else if (SelectedAlgorithmKey == "ASTAR") {
+				Result = AStarEngine.FindPath(StartCity, TargetCity);
+				ActiveEngineName = AStarEngine.Name;
 			}
 		}
 	}
