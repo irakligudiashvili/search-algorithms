@@ -10,14 +10,31 @@
 	<div style="width:90%; background-color: #111; ">
 		<svg width="100%" height="100%" viewBox="0 0 @MapWidth @MapHeight" preserveAspectRatio="xMidYMid meet">
 			<image 
-				href="images/georgia.png"
-				width="@MapWidth"
-				height="@MapHeight"
-				x="0"
-				y="0"
+			href="images/georgia.png"
+			width="@MapWidth"
+			height="@MapHeight"
+			x="0"
+			y="0"
 			/>
 
 			<rect width="@MapWidth" height="@MapHeight" fill="black" opacity="0.15" style="pointer-events: none;" />
+
+			@foreach(var road in GeorgiaMap.Roads) {
+				var cityA = GeorgiaMap.Cities.FirstOrDefault(c => c.Name == road.StartCity);
+				var cityB = GeorgiaMap.Cities.FirstOrDefault(c => c.Name == road.EndCity);
+
+				if(cityA != null && cityB != null) {
+					var posA = Project(cityA);
+					var posB = Project(cityB);
+
+					<path d="M @posA.X @posA.Y Q @road.ControlX @road.ControlY @posB.X @posB.Y"
+					fill="none"
+					stroke="#555"
+					stroke-width="3"
+					stroke-dasharray="6,6"
+					/>
+				}
+			}
 
 			@foreach (var city in GeorgiaMap.Cities) {
 				var pos = Project(city);
@@ -50,5 +67,20 @@
 		double pctY = 1.0 - ((city.Lat - MinLat) / (MaxLat - MinLat));
 
 		return (pctX * MapWidth, pctY * MapHeight);
+	}
+
+	protected override void OnInitialized(){
+		foreach(var road in GeorgiaMap.Roads){
+			var cityA = GeorgiaMap.Cities.FirstOrDefault(c => c.Name == road.StartCity);
+			var cityB = GeorgiaMap.Cities.FirstOrDefault(c => c.Name == road.EndCity);
+
+			if(cityA != null && cityB != null){
+				var posA = Project(cityA);
+				var posB = Project(cityB);
+
+				road.ControlX = (posA.X + posB.X) / 2;
+				road.ControlY = (posA.Y + posB.Y) / 2;
+			}
+		}
 	}
 }
