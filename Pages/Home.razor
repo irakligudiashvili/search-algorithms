@@ -1,55 +1,126 @@
 ﻿@page "/"
 @using SearchAlgorithms.Models
 @using SearchAlgorithms.Data
+@using SearchAlgorithms.Services
+@inject BreadthFirstSearch BfsEngine
+@inject IterativeDeepeningBidirectionalDFS IdBiDfsEngine
 
 <PageTitle>Search Algorithms</PageTitle>
 
-<div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-	<h2>Search Algorithms</h2>
+<div class="container-fluid text-white px-4 py-4" style="min-height: 100vh; display: flex; flex-direction: column; gap: 20px; font-family: sans-serif">
+	<h2 class="text-center mb-2">Search Algorithms</h2>
 
-	<div style="width:90%; background-color: #111; ">
-		<svg width="100%" height="100%" viewBox="0 0 @MapWidth @MapHeight" preserveAspectRatio="xMidYMid meet">
-			<image 
-			href="images/georgia.png"
-			width="@MapWidth"
-			height="@MapHeight"
-			x="0"
-			y="0"
-			/>
+	<div style="background: #212529; padding: 15px; border-radius: 8px; display: flex; gap: 20px; align-items: center; justify-content: center; width: 100%; border: 1px solid #333;">
+		<div>
+			<label class="me-2 fw-bold">Algorithm:</label>
+			<select @bind="SelectedAlgorithmKey" class="form-select bg-secondary text-white d-inline-block" style="width: 220px">
+				<option value="BFS">Breadth-First</option>
+				<option value="ID_BIDS">ID-Bidirectional DFS</option>
+			</select>
+		</div>
 
-			<rect width="@MapWidth" height="@MapHeight" fill="black" opacity="0.15" style="pointer-events: none;" />
-
-			@foreach(var road in GeorgiaMap.Roads) {
-				var cityA = GeorgiaMap.Cities.FirstOrDefault(c => c.Name == road.StartCity);
-				var cityB = GeorgiaMap.Cities.FirstOrDefault(c => c.Name == road.EndCity);
-
-				if(cityA != null && cityB != null) {
-					var posA = Project(cityA);
-					var posB = Project(cityB);
-
-					<path d="M @posA.X @posA.Y Q @road.ControlX @road.ControlY @posB.X @posB.Y"
-					fill="none"
-					stroke="#555"
-					stroke-width="3"
-					stroke-dasharray="6,6"
-					/>
+		<div>
+			<label class="me-2 fw-bold">Start:</label>
+			<select @bind="StartCity" class="form-select bg-secondary text-white d-inline-block" style="width: 160px">
+				<option value="">-- Select --</option>
+				@foreach (var city in GeorgiaMap.Cities.OrderBy(c => c.Name)) {
+					<option value="@city.Name">@city.Name</option>
 				}
+			</select>
+		</div>
+
+		<div>
+			<label class="me-2 fw-bold">Target:</label>
+			<select @bind="TargetCity" class="form-select bg-secondary text-white d-inline-block" style="width: 160px">
+				<option value="">-- Select --</option>
+				@foreach (var city in GeorgiaMap.Cities.OrderBy(c => c.Name)) {
+					<option value="@city.Name">@city.Name</option>
+				}
+			</select>
+		</div>
+
+		<button class="btn btn-primary fw-bold px-4" @onclick="RunSearch" disabled="@(string.IsNullOrEmpty(StartCity) || string.IsNullOrEmpty(TargetCity))">
+			Find Path
+		</button>
+	</div>
+
+	<div style="display: flex; gap: 20px; width: 100%; align-items: stretch; flex-wrap: wrap;">
+		<div style="flex: 3; min-width: 600px; background-color: #111; border: 1px solid #333; border-radius: 8px; overflow: hidden; aspect-ratio: 1920 / 1023;">
+			<svg width="100%" height="100%" viewBox="0 0 @MapWidth @MapHeight" preserveAspectRatio="xMidYMid meet" x="0" y="0">
+				<image href="images/georgia.png"
+				width="@MapWidth"
+				height="@MapHeight"
+				x="0"
+				y="0" />
+
+				<rect width="@MapWidth" height="@MapHeight" fill="black" opacity="0.25" style="pointer-events: none;" />
+
+				@foreach (var road in GeorgiaMap.Roads) {
+					var cityA = GeorgiaMap.Cities.FirstOrDefault(c => c.Name == road.StartCity);
+					var cityB = GeorgiaMap.Cities.FirstOrDefault(c => c.Name == road.EndCity);
+
+					if (cityA != null && cityB != null) {
+						var posA = Project(cityA);
+						var posB = Project(cityB);
+
+						bool isPathSegment = IsRoadInPath(road.StartCity, road.EndCity);
+
+						<path d="M @posA.X @posA.Y Q @road.ControlX @road.ControlY @posB.X @posB.Y"
+						fill="none"
+						stroke="@(isPathSegment ? "#198754" : "#555")"
+						stroke-width="3"
+						stroke-dasharray="6,6" />
+					}
+				}
+
+				@foreach (var city in GeorgiaMap.Cities) {
+					var pos = Project(city);
+
+					bool isTerminal = city.Name == StartCity || city.Name == TargetCity;
+					var isRoutePath = Result?.Path.Contains(city.Name) ?? false;
+
+					string circleColor = isTerminal ? "#DC3545" : (isRoutePath ? "#198754" : "#0D6EFD");
+
+					<circle cx="@pos.X" cy="@pos.Y" r="@(isTerminal ? 14 : 10)" fill="@circleColor" stroke="white" stroke-width="2" />
+
+					<svg:text x="@pos.X" y="@(pos.Y - 13)" fill="black" font-size="24" font-weight="bold" text-anchor="middle" style="user-select: none;">
+						@city.Name
+					</svg:text>
+
+					<svg:text x="@pos.X" y="@(pos.Y - 14)" fill="white" font-size="24" font-weight="bold" text-anchor="middle" style="user-select: none;">
+						@city.Name
+					</svg:text>
+				}
+			</svg>
+
+		</div>
+
+
+		<div style="flex: 1; min-width: 250px; background: #1a1a1a; padding: 20px; border-radius: 8px; border: 1px solid #222; display: flex; flex-direction: column; gap: 20px;">
+			<h4 class="border-bottom pb-2 text-white fw-bold" style="font-size: 16px; text-transform: uppercase; letter-spacing: 1px;">Metrics</h4>
+
+			@if (Result != null) {
+				<div style="display: flex; flex-direction: column; gap: 5px;">
+					<span class="text-white fw-bold" style="font-size: 24px;">Algorithm</span>
+					<strong style="font-size: 16px; color: #0D6EFD;">@ActiveEngineName</strong>
+				</div>
+				<hr style="margin: 0; border-color: #333;" />
+				<div style="display: flex; flex-direction: column; gap: 5px;">
+					<span class="text-white fw-bold" style="font-size: 24px;">Explored Nodes</span>
+					<strong style="font-size: 24px; color: #ffc107;">@Result.NodesExploredCount</strong>
+				</div>
+				<hr style="margin: 0; border-color: #333;" />
+				<div style="display: flex; flex-direction: column; gap: 5px;">
+					<span class="text-white fw-bold" style="font-size: 24px">Execution Time</span>
+					<strong style="font-size: 24px; color: #0dcaf0;">@Result.ExecutionTime.TotalMilliseconds.ToString("F3") ms</strong>
+				</div>
+				<hr style="margin: 0; border-color: #333;" />
+			} else {
+				<div class="text-center my-auto text-white fw-bold" style="font-style: italic; font-size: 14px;">
+					Select endpoints and click "Find Path" to generate route metrics.
+				</div>
 			}
-
-			@foreach (var city in GeorgiaMap.Cities) {
-				var pos = Project(city);
-
-				<circle cx="@pos.X" cy="@pos.Y" r="10" fill="#0D6EFD" stroke="white" stroke-width="2" />
-
-				<svg:text x="@pos.X" y="@(pos.Y - 13)" fill="black" font-size="24" font-weight="bold" text-anchor="middle" style="user-select: none;">
-					@city.Name
-				</svg:text>
-
-				<svg:text x="@pos.X" y="@(pos.Y - 14)" fill="white" font-size="24" font-weight="bold" text-anchor="middle" style="user-select: none;">
-					@city.Name
-				</svg:text>
-			}
-		</svg>
+		</div>
 	</div>
 </div>
 
@@ -61,6 +132,24 @@
 	private double MaxLon = 46.9;
 	private double MinLat = 40.9;
 	private double MaxLat = 43.7;
+
+	private string SelectedAlgorithmKey { get; set; } = "BFS";
+	private string StartCity { get; set; } = "";
+	private string TargetCity { get; set; } = "";
+	private SearchResult Result { get; set; }
+	private string ActiveEngineName { get; set; } = "";
+
+	private void RunSearch() {
+		if(!string.IsNullOrEmpty(StartCity) && !string.IsNullOrEmpty(TargetCity)) {
+			if(SelectedAlgorithmKey == "BFS") {
+				Result = BfsEngine.FindPath(StartCity, TargetCity);
+				ActiveEngineName = BfsEngine.Name;
+			} else if (SelectedAlgorithmKey == "ID_BIDS") {
+				Result = IdBiDfsEngine.FindPath(StartCity, TargetCity);
+				ActiveEngineName = IdBiDfsEngine.Name;
+			}
+		}
+	}
 
 	private (double X, double Y) Project(City city) {
 		double pctX = (city.Lon - MinLon) / (MaxLon - MinLon);
@@ -82,5 +171,22 @@
 				road.ControlY = (posA.Y + posB.Y) / 2;
 			}
 		}
+	}
+
+	private bool IsRoadInPath(string city1, string city2) {
+		if(Result == null || Result.Path == null || Result.Path.Count < 2) {
+			return false;
+		}
+
+		for (int i = 0; i < Result.Path.Count - 1; i++) {
+			string current = Result.Path[i];
+			string next = Result.Path[i + 1];
+
+			if ((current == city1 && next == city2) || (current == city2 && next == city1)) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }
