@@ -11,7 +11,7 @@ namespace SearchAlgorithms.Data {
             new City("Signaghi", 41.62, 45.9217),
             new City("Lagodekhi", 41.825, 46.275),
             new City("Kvareli", 41.95, 45.8167),
-            new City("Bolnisi", 41.45, 44.5417)
+            new City("Bolnisi", 41.45, 44.5417),
             new City("Mtskheta", 41.85, 44.7167),
             new City("Dusheti", 42.0833, 44.7),
             new City("Stepantsminda", 42.6575, 44.6433),
