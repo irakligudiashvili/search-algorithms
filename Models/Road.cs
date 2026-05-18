@@ -31,7 +31,8 @@
                 prevY = currentY;
             }
 
-            this.Distance = length;
+            double pixelToKmScale = 0.306;
+            this.Distance = length * pixelToKmScale;
         }
     }
 }

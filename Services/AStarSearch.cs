@@ -86,7 +86,23 @@ namespace SearchAlgorithms.Services {
         }
 
         private double CalculateHeuristic(City current, City target) {
-            return CalculateDistance(current, target);
+            var posCurrent = Project(current);
+            var posTarget = Project(target);
+
+            double dx = posCurrent.X - posTarget.X;
+            double dy = posCurrent.Y - posTarget.Y;
+
+            return Math.Sqrt(dx * dx + dy * dy);
+        }
+
+        private (double X, double Y) Project(City city) {
+            double MinLon = 39.8; double MaxLon = 46.9;
+            double MinLat = 40.9; double MaxLat = 43.7;
+
+            double pctX = (city.Lon - MinLon) / (MaxLon - MinLon);
+            double pctY = 1.0 - ((city.Lat - MinLat) / (MaxLat - MinLat));
+
+            return (pctX * 1920, pctY * 1023);
         }
 
         private double CalculateDistance(City a, City b) {

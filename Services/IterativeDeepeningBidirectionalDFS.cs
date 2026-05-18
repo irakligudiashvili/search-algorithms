@@ -149,12 +149,25 @@ namespace SearchAlgorithms.Services {
             double distance = 0;
 
             for(int i = 0; i < path.Count - 1; i++) {
-                var cityA = GeorgiaMap.Cities.First(c => c.Name == path[i]);
-                var cityB = GeorgiaMap.Cities.First(c => c.Name == path[i + 1]);
-                double dx = cityA.Lon - cityB.Lon;
-                double dy = cityA.Lat - cityB.Lat;
+                string current = path[i];
+                string next = path[i + 1];
 
-                distance += Math.Sqrt(dx * dx + dy * dy);
+                var road = GeorgiaMap.Roads.FirstOrDefault(r => 
+                    (r.StartCity == current && r.EndCity == next) || 
+                    (r.StartCity == next && r.EndCity == current)
+                );
+
+                if(road != null) {
+                    distance += road.Distance;
+                } else {
+                    var cityA = GeorgiaMap.Cities.First(c => c.Name == current);
+                    var cityB = GeorgiaMap.Cities.First(c => c.Name == next);
+
+                    double dx = (cityA.Lon - cityB.Lon) * 111;
+                    double dy = (cityA.Lat - cityB.Lat) * 111;
+
+                    distance += Math.Sqrt(dx * dx + dy * dy);
+                }
             }
 
             return distance;
