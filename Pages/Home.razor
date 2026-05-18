@@ -2,255 +2,525 @@
 @using SearchAlgorithms.Models
 @using SearchAlgorithms.Data
 @using SearchAlgorithms.Services
-@inject BreadthFirstSearch BfsEngine
 @inject IterativeDeepeningBidirectionalDFS IdBiDfsEngine
 @inject AStarSearch AStarEngine
 
 <PageTitle>Search Algorithms</PageTitle>
 
-<div class="container-fluid text-white px-4 py-4" style="min-height: 100vh; display: flex; flex-direction: column; gap: 20px; font-family: sans-serif">
-	<h2 class="text-center mb-2">Search Algorithms</h2>
+<div class="container-fluid text-white px-4 py-4" style="min-height: 100vh; display: flex; flex-direction: column; font-family: system-ui, -apple-system, sans-serif; max-width: 95%;">
+    <div style="background: rgba(30, 34, 45, 0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); padding: 15px 30px; border-radius: 16px 16px 0 0; display: flex; gap: 28px; align-items: flex-end; justify-content: center; width: 100%; border: 1px solid rgba(255, 255, 255, 0.08); border-bottom: none; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35); flex-shrink: 0;">
+        <div style="display: flex; flex-direction: row; gap: 8px; justify-content: center; align-items: center;">
+            <label class="fw-bold small text-uppercase" style="letter-spacing: 1px; font-size: 10px;">Select Algorithm</label>
+            <select @bind="SelectedAlgorithmKey" class="form-select text-white border-0" style="width: 180px; border-radius: 8px; background-color: rgba(255, 255, 255, 0.07); padding: 10px 14px; font-size: 14px; cursor: pointer; transition: background-color 0.2s;">
+                <option disabled selected value="">-- Select --</option>
+                <option value="ID_BIDS">ID-Bidirectional DFS</option>
+                <option value="ASTAR">A* Search</option>
+            </select>
+        </div>
 
-	<div style="background: #212529; padding: 15px; border-radius: 8px; display: flex; gap: 20px; align-items: center; justify-content: center; width: 100%; border: 1px solid #333;">
-		<div>
-			<label class="me-2 fw-bold">Algorithm:</label>
-			<select @bind="SelectedAlgorithmKey" class="form-select bg-secondary text-white d-inline-block" style="width: 220px">
-				<option value="BFS">Breadth First Search</option>
-				<option value="ID_BIDS">ID-Bidirectional DFS</option>
-				<option value="ASTAR">A* Search</option>
-			</select>
-		</div>
+        <div style="display: flex; flex-direction: row; gap: 8px; justify-content: center; align-items: center;">
+            <label class="fw-bold small text-uppercase" style="letter-spacing: 1px; font-size: 10px;">Start Location</label>
+            <select @bind="StartCity" class="form-select text-white border-0" style="width: 150px; border-radius: 8px; background-color: rgba(255, 255, 255, 0.07); padding: 10px 14px; font-size: 14px; cursor: pointer; transition: background-color 0.2s;">
+                <option disabled selected value="">-- Select --</option>
+                @foreach (var city in GeorgiaMap.Cities.OrderBy(c => c.Name)) {
+                    <option value="@city.Name">@city.Name</option>
+                }
+            </select>
+        </div>
 
-		<div>
-			<label class="me-2 fw-bold">Start:</label>
-			<select @bind="StartCity" class="form-select bg-secondary text-white d-inline-block" style="width: 160px">
-				<option value="">-- Select --</option>
-				@foreach (var city in GeorgiaMap.Cities.OrderBy(c => c.Name)) {
-					<option value="@city.Name">@city.Name</option>
-				}
-			</select>
-		</div>
+        <div style="display: flex; flex-direction: row; gap: 8px; justify-content: center; align-items: center;">
+            <label class="fw-bold small text-uppercase" style="letter-spacing: 1px; font-size: 10px;">Target Destination</label>
+            <select @bind="TargetCity" class="form-select text-white border-0" style="width: 150px; border-radius: 8px; background-color: rgba(255, 255, 255, 0.07); padding: 10px 14px; font-size: 14px; cursor: pointer; transition: background-color 0.2s;">
+                <option disabled selected value="">-- Select --</option>
+                @foreach (var city in GeorgiaMap.Cities.OrderBy(c => c.Name)) {
+                    <option value="@city.Name">@city.Name</option>
+                }
+            </select>
+        </div>
 
-		<div>
-			<label class="me-2 fw-bold">Target:</label>
-			<select @bind="TargetCity" class="form-select bg-secondary text-white d-inline-block" style="width: 160px">
-				<option value="">-- Select --</option>
-				@foreach (var city in GeorgiaMap.Cities.OrderBy(c => c.Name)) {
-					<option value="@city.Name">@city.Name</option>
-				}
-			</select>
-		</div>
+        <button class="btn btn-primary fw-bold px-4 text-uppercase" @onclick="RunSearch" 
+                disabled="@(string.IsNullOrEmpty(StartCity) || string.IsNullOrEmpty(TargetCity) || string.IsNullOrEmpty(SelectedAlgorithmKey))"
+                style="border-radius: 8px; background: linear-gradient(135deg, #007bff, #0052cc); border: none; height: 41px; font-size: 13px; letter-spacing: 0.5px; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(0, 123, 255, 0.25);">
+            Find Path
+        </button>
+    </div>
 
-		<button class="btn btn-primary fw-bold px-4" @onclick="RunSearch" disabled="@(string.IsNullOrEmpty(StartCity) || string.IsNullOrEmpty(TargetCity))">
-			Find Path
-		</button>
-	</div>
+    <div style="background: #1a1a1a; min-height: 65px; max-height: 65px; border-left: 1px solid #333; border-right: 1px solid #333; border-bottom: 1px solid #222; display: flex; align-items: center; justify-content: center; width: 100%; flex-shrink: 0; box-shadow: inset 0 1px 3px rgba(255,255,255,0.02);">
+        @if (Result != null) {
+            <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-around; width: 100%; gap: 16px; text-align: center; padding: 0 24px;">
+                <div style="display: flex; flex-direction: column; gap: 2px; flex: 1;">
+                    <span class="small fw-bold text-uppercase" style="letter-spacing: 1px; font-size: 11px;">Explored Nodes</span>
+                    <strong style="font-size: 22px; color: #ffc107; font-family: monospace; font-weight: 700; line-height: 1;">@Result.NodesExploredCount</strong>
+                </div>
+                
+                <div style="height: 32px; width: 1px; background-color: #fff;"></div>
+                
+                <div style="display: flex; flex-direction: column; gap: 2px; flex: 1;">
+                    <span class="small fw-bold text-uppercase" style="letter-spacing: 1px; font-size: 11px;">Execution Performance</span>
+                    <strong style="font-size: 22px; color: #0dcaf0; font-family: monospace; font-weight: 700; line-height: 1;">@Result.ExecutionTime.TotalMilliseconds.ToString("F3")<span style="font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.3); margin-left: 2px;">ms</span></strong>
+                </div>
+                
+                <div style="height: 32px; width: 1px; background-color: #fff;"></div>
+                
+                <div style="display: flex; flex-direction: column; gap: 2px; flex: 1;">
+                    <span class="small fw-bold text-uppercase" style="letter-spacing: 1px; font-size: 11px;">Calculated Weight</span>
+                    <strong style="font-size: 22px; color: #22c97e; font-family: monospace; font-weight: 700; line-height: 1;">@Result.TotalDistance.ToString("F1")<span style="font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.3); margin-left: 2px;">km</span></strong>
+                </div>
+                
+            </div>
+        }
+    </div>
 
-	<div style="display: flex; gap: 20px; width: 100%; align-items: stretch; flex-wrap: wrap;">
-		<div style="flex: 3; min-width: 600px; background-color: #111; border: 1px solid #333; border-radius: 8px; overflow: hidden; aspect-ratio: 1920 / 1023;">
-			<svg width="100%" height="100%" viewBox="0 0 @MapWidth @MapHeight" preserveAspectRatio="xMidYMid meet" x="0" y="0" @onpointerup="HandlePointerUp" @onpointermove="HandlePointerMove" @onpointerleave="HandlePointerUp" ref="SvgContainerReference">
-				<image href="images/georgia.png"
-				width="@MapWidth"
-				height="@MapHeight"
-				x="0"
-				y="0" />
+    <div style="flex: 3; min-width: 600px; background-color: #111317; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; overflow: hidden; aspect-ratio: 1920 / 1023; box-shadow: 0 12px 40px rgba(0,0,0,0.55);">
+        <svg id="map-svg"
+             width="100%" height="100%"
+             viewBox="0 0 @MapWidth @MapHeight"
+             preserveAspectRatio="xMidYMid slice"
+             @ref="SvgContainerReference"
+             @onpointerdown="HandleMapPointerDown"
+             @onpointermove="HandleMapPointerMove"
+             @onpointerup="HandleMapPointerUp"
+             @onpointerleave="HandleMapPointerUp"
+             @onwheel="HandleWheel"
+             @onwheel:preventDefault="true"
+             style="display:block; cursor: @(IsPanning ? "grabbing" : "grab"); touch-action: none;">
 
-				<rect width="@MapWidth" height="@MapHeight" fill="black" opacity="0.25" style="pointer-events: none;" />
+            <defs>
+                <filter id="f-glow-cyan" x="-80%" y="-80%" width="260%" height="260%">
+                    <feGaussianBlur stdDeviation="14" result="blur" />
+                    <feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                </filter>
+                <filter id="f-glow-green" x="-80%" y="-80%" width="260%" height="260%">
+                    <feGaussianBlur stdDeviation="10" result="blur" />
+                    <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                </filter>
+                <filter id="f-glow-yellow" x="-80%" y="-80%" width="260%" height="260%">
+                    <feGaussianBlur stdDeviation="7" result="blur" />
+                    <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                </filter>
+                <radialGradient id="g-vignette" cx="50%" cy="50%" r="70%">
+                    <stop offset="0%" stop-color="#000" stop-opacity="0" />
+                    <stop offset="100%" stop-color="#000" stop-opacity="0.6" />
+                </radialGradient>
+            </defs>
 
-				@foreach (var road in GeorgiaMap.Roads) {
-					var cityA = GeorgiaMap.Cities.FirstOrDefault(c => c.Name == road.StartCity);
-					var cityB = GeorgiaMap.Cities.FirstOrDefault(c => c.Name == road.EndCity);
+            <g transform="translate(@PanX, @PanY) scale(@ZoomScale)" transform-origin="0 0">
 
-					if (cityA != null && cityB != null) {
-						var posA = Project(cityA);
-						var posB = Project(cityB);
+                <image href="images/georgia.png"
+                width="@MapWidth" height="@MapHeight" x="0" y="0"
+                style="filter: contrast(1.08) brightness(0.78) saturate(0.9); pointer-events: none;" />
+                <rect width="@MapWidth" height="@MapHeight" fill="#080c18" opacity="0.38" style="pointer-events:none;" />
+                <rect width="@MapWidth" height="@MapHeight" fill="url(#g-vignette)" style="pointer-events:none;" />
 
-						bool isPathSegment = IsRoadInPath(road.StartCity, road.EndCity);
+                @foreach (var road in GeorgiaMap.Roads) {
+                    var cityA = GeorgiaMap.Cities.FirstOrDefault(c => c.Name == road.StartCity);
+                    var cityB = GeorgiaMap.Cities.FirstOrDefault(c => c.Name == road.EndCity);
+                    if (cityA != null && cityB != null && !IsRoadInPath(road.StartCity, road.EndCity)) {
+                        var posA = Project(cityA);
+                        var posB = Project(cityB);
+                        bool isExplored = Result?.VisitedOrder?.Contains(road.StartCity) == true
+                        && Result?.VisitedOrder?.Contains(road.EndCity) == true;
+                        <path d="M @posA.X @posA.Y Q @road.ControlX @road.ControlY @posB.X @posB.Y"
+                        fill="none"
+                        stroke="@(isExplored && Result != null ? "rgba(230,210,40,0.10)" : "rgba(255,255,255,0.04)")"
+                        stroke-width="7" stroke-linecap="round"
+                        style="pointer-events:none;" />
+                        <path d="M @posA.X @posA.Y Q @road.ControlX @road.ControlY @posB.X @posB.Y"
+                        fill="none"
+                        stroke="@(isExplored && Result != null ? "rgba(230,210,40,0.38)" : "rgba(255,255,255,0.13)")"
+                        stroke-width="2.5" stroke-linecap="round"
+                        style="pointer-events:none;" />
+                    }
+                }
 
-						<path
-						d="M @posA.X @posA.Y Q @road.ControlX @road.ControlY @posB.X @posB.Y"
-						fill="none"
-						stroke="@(isPathSegment ? "#198754" : "#555")"
-						stroke-width="3"
-						stroke-dasharray="6,6"
-						style="pointer-events: none"
-						/>
+                @foreach (var road in GeorgiaMap.Roads) {
+                    var cityA = GeorgiaMap.Cities.FirstOrDefault(c => c.Name == road.StartCity);
+                    var cityB = GeorgiaMap.Cities.FirstOrDefault(c => c.Name == road.EndCity);
+                    if (cityA != null && cityB != null && IsRoadInPath(road.StartCity, road.EndCity)) {
+                        var posA = Project(cityA);
+                        var posB = Project(cityB);
+                        <path d="M @posA.X @posA.Y Q @road.ControlX @road.ControlY @posB.X @posB.Y"
+                        fill="none" stroke="#22c97e" stroke-width="22" stroke-linecap="round"
+                        opacity="0.08" style="pointer-events:none;" filter="url(#f-glow-green)" />
+                        <path d="M @posA.X @posA.Y Q @road.ControlX @road.ControlY @posB.X @posB.Y"
+                        fill="none" stroke="#0a3d25" stroke-width="7" stroke-linecap="round"
+                        style="pointer-events:none;" />
+                        <path d="M @posA.X @posA.Y Q @road.ControlX @road.ControlY @posB.X @posB.Y"
+                        fill="none" stroke="#22c97e" stroke-width="4" stroke-linecap="round"
+                        style="pointer-events:none;" />
+                        <path d="M @posA.X @posA.Y Q @road.ControlX @road.ControlY @posB.X @posB.Y"
+                        fill="none" stroke="#a8f0cc" stroke-width="1" stroke-linecap="round"
+                        stroke-dasharray="18 14" opacity="0.5" style="pointer-events:none;" />
+                    }
+                }
 
-						double handleX = 0.25 * posA.X + 0.5 * road.ControlX + 0.25 * posB.X;
-						double handleY = 0.25 * posA.Y + 0.5 * road.ControlY + 0.25 * posB.Y;
+                @foreach (var road in GeorgiaMap.Roads) {
+                    var cityA = GeorgiaMap.Cities.FirstOrDefault(c => c.Name == road.StartCity);
+                    var cityB = GeorgiaMap.Cities.FirstOrDefault(c => c.Name == road.EndCity);
+                    if (cityA != null && cityB != null) {
+                        var posA = Project(cityA);
+                        var posB = Project(cityB);
+                        bool isPath = IsRoadInPath(road.StartCity, road.EndCity);
+                        double hx = 0.25 * posA.X + 0.5 * road.ControlX + 0.25 * posB.X;
+                        double hy = 0.25 * posA.Y + 0.5 * road.ControlY + 0.25 * posB.Y;
 
-						<circle 
-						cx="@handleX"
-					    cy="@handleY"
-						r="6"
-						fill="@(isPathSegment ? "#FFC107" : "#aaa")"
-						stroke="white"
-						stroke-width="1"
-						style="cursor: move;"
-						@onpointerdown="(e) => HandlePointerDown(e, road, cityA, cityB)"
-						/>
-					}
-				}
+                        <circle cx="@hx" cy="@hy" r="18"
+                                fill="transparent" stroke="none"
+                                style="cursor:move; pointer-events: all;"
+                                @onpointerdown="(e) => HandleRoadHandleDown(e, road, cityA, cityB)"
+                                @onpointerdown:stopPropagation="true" />
 
-				@foreach (var city in GeorgiaMap.Cities) {
-					var pos = Project(city);
+                        <g class="road-handle" style="pointer-events: none;">
+                            <circle cx="@hx" cy="@hy" r="12"
+                                    fill="@(isPath ? "rgba(34,201,126,0.15)" : "rgba(255,255,255,0.08)")"
+                                    stroke="@(isPath ? "rgba(34,201,126,0.55)" : "rgba(255,255,255,0.3)")"
+                                    stroke-width="1.5" />
+                            <circle class="road-handle-inner" cx="@hx" cy="@hy" r="4"
+                                    fill="@(isPath ? "#22c97e" : "rgba(255,255,255,0.6)")" stroke="none" />
+                            <line class="road-handle-inner"
+                                  x1="@(hx - 7)" y1="@hy" x2="@(hx + 7)" y2="@hy"
+                                  stroke="@(isPath ? "rgba(34,201,126,0.6)" : "rgba(255,255,255,0.35)")" stroke-width="1" />
+                            <line class="road-handle-inner"
+                                  x1="@hx" y1="@(hy - 7)" x2="@hx" y2="@(hy + 7)"
+                                  stroke="@(isPath ? "rgba(34,201,126,0.6)" : "rgba(255,255,255,0.35)")" stroke-width="1" />
+                        </g>
+                    }
+                }
 
-					bool isTerminal = city.Name == StartCity || city.Name == TargetCity;
-					var isRoutePath = Result?.Path.Contains(city.Name) ?? false;
+                @foreach (var city in GeorgiaMap.Cities) {
+                    var pos = Project(city);
+                    bool isStart = city.Name == StartCity;
+                    bool isEnd = city.Name == TargetCity;
+                    bool isTerminal = isStart || isEnd;
+                    bool isOnPath = Result?.Path?.Contains(city.Name) ?? false;
+                    bool isExplored = Result?.VisitedOrder?.Contains(city.Name) ?? false;
+                    bool searchRan = Result != null;
+                    bool isDimmed = searchRan && !isTerminal && !isOnPath && !isExplored;
 
-					string circleColor = isTerminal ? "#DC3545" : (isRoutePath ? "#198754" : "#0D6EFD");
+                    string nodeColor, ringColor, labelColor, bodyFill;
+                    double nodeR, outerR;
+                    string glowFilter;
+                    bool showRing;
 
-					<circle cx="@pos.X" cy="@pos.Y" r="@(isTerminal ? 14 : 10)" fill="@circleColor" stroke="white" stroke-width="2" />
+                    if (isTerminal) {
+                        nodeColor = "#00edf1";
+                        ringColor = "rgba(0,237,241,0.2)";
+                        labelColor = "#00edf1";
+                        bodyFill = "rgba(0,180,185,0.55)";
+                        nodeR = 11;
+                        outerR = 22;
+                        glowFilter = "url(#f-glow-cyan)";
+                        showRing = true;
+                    } else if (isOnPath && searchRan) {
+                        nodeColor = "#22c97e";
+                        ringColor = "rgba(34,201,126,0.2)";
+                        labelColor = "#a8f0cc";
+                        bodyFill = "rgba(34,180,100,0.55)";
+                        nodeR = 8;
+                        outerR = 16;
+                        glowFilter = "url(#f-glow-green)";
+                        showRing = true;
+                    } else if (isExplored && searchRan) {
+                        nodeColor = "#e6d620";
+                        ringColor = "rgba(230,214,32,0.15)";
+                        labelColor = "#f0e87a";
+                        bodyFill = "rgba(200,185,20,0.55)";
+                        nodeR = 6;
+                        outerR = 13;
+                        glowFilter = "url(#f-glow-yellow)";
+                        showRing = true;
+                    } else {
+                        nodeColor = isDimmed ? "rgba(140,136,128,0.4)" : "rgba(180,175,168,0.9)";
+                        ringColor = "transparent";
+                        labelColor = isDimmed ? "rgba(160,156,148,0.4)" : "rgba(210,206,198,0.85)";
+                        bodyFill = isDimmed ? "rgba(60,58,54,0.3)" : "rgba(55,52,48,0.75)";
+                        nodeR = isDimmed ? 4.5 : 5;
+                        outerR = 0;
+                        glowFilter = "none";
+                        showRing = false;
+                    }
 
-					<svg:text x="@pos.X" y="@(pos.Y - 13)" fill="black" font-size="24" font-weight="bold" text-anchor="middle" style="user-select: none;">
-						@city.Name
-					</svg:text>
+                    if (showRing) {
+                        <circle cx="@pos.X" cy="@pos.Y" r="@outerR"
+                        fill="@ringColor" stroke="@nodeColor"
+                        stroke-width="@(isTerminal ? 1.5 : 1)"
+                        opacity="@(isTerminal ? 0.55 : 0.38)"
+                        style="pointer-events:none;" />
+                    }
+                    if (isTerminal) {
+                        <circle cx="@pos.X" cy="@pos.Y" r="34"
+                        fill="none" stroke="rgba(0,237,241,0.09)"
+                        stroke-width="1" style="pointer-events:none;" />
+                    }
+                    if (glowFilter != "none") {
+                        <circle cx="@pos.X" cy="@pos.Y" r="@nodeR"
+                        fill="@nodeColor" opacity="@(isTerminal ? 0.3 : 0.2)"
+                        filter="@glowFilter" style="pointer-events:none;" />
+                    }
+                    <circle cx="@pos.X" cy="@pos.Y" r="@nodeR"
+                    fill="@bodyFill" stroke="@nodeColor"
+                    stroke-width="@(isTerminal ? 2.5 : isOnPath && searchRan ? 2 : 1.5)"
+                    style="pointer-events:none;" />
 
-					<svg:text x="@pos.X" y="@(pos.Y - 14)" fill="white" font-size="24" font-weight="bold" text-anchor="middle" style="user-select: none;">
-						@city.Name
-					</svg:text>
-				}
-			</svg>
+                    double labelY = pos.Y - nodeR - (isTerminal ? 14 : 10);
+                    double fontSize = isTerminal ? 21 : isOnPath && searchRan ? 17 : 15;
+                    string fontWeight = isTerminal ? "700" : isOnPath && searchRan ? "600" : "500";
 
-		</div>
+                    <svg:text x="@pos.X" y="@labelY"
+                          fill="rgba(0,0,0,0.95)"
+                          font-family="'Inter','Segoe UI',system-ui,sans-serif"
+                          font-size="@fontSize" font-weight="@fontWeight" text-anchor="middle"
+                          style="user-select:none; pointer-events:none; letter-spacing:0.3px;">
+                        @city.Name
+                    </svg:text>
+                    
+                    <svg:text x="@pos.X" y="@labelY"
+                          fill="@labelColor"
+                          font-family="'Inter','Segoe UI',system-ui,sans-serif"
+                          font-size="@fontSize" font-weight="@fontWeight" text-anchor="middle"
+                          style="user-select:none; pointer-events:none; letter-spacing:0.3px; transform: translate(0px, -1px);">
+                        @city.Name
+                    </svg:text>
+                }
 
+            </g>
 
-		<div style="flex: 1; min-width: 250px; background: #1a1a1a; padding: 20px; border-radius: 8px; border: 1px solid #222; display: flex; flex-direction: column; gap: 20px;">
-			<h4 class="border-bottom pb-2 text-white fw-bold" style="font-size: 16px; text-transform: uppercase; letter-spacing: 1px;">Metrics</h4>
+            @{
+                int lx = MapWidth - 256;
+                int ly = MapHeight - 158;
+            }
+            <g style="pointer-events: none;">
+                <rect x="@lx" y="@ly" width="236" height="140" rx="6"
+                      fill="rgba(6,9,20,0.75)" stroke="rgba(255,255,255,0.07)" stroke-width="1" />
+                <text x="@(lx + 15)" y="@(ly + 21)" fill="rgba(255,255,255,0.3)" font-size="10"
+                      font-family="'Inter','Segoe UI',system-ui,sans-serif" font-weight="600" letter-spacing="2">LEGEND</text>
+                <circle cx="@(lx + 22)" cy="@(ly + 43)" r="7" fill="rgba(0,180,185,0.55)" stroke="#00edf1" stroke-width="2" />
+                <text x="@(lx + 38)" y="@(ly + 48)" fill="rgba(255,255,255,0.6)" font-size="13"
+                      font-family="'Inter','Segoe UI',system-ui,sans-serif">Origin / Target</text>
+                <circle cx="@(lx + 22)" cy="@(ly + 70)" r="6" fill="rgba(34,180,100,0.55)" stroke="#22c97e" stroke-width="2" />
+                <text x="@(lx + 38)" y="@(ly + 75)" fill="rgba(255,255,255,0.6)" font-size="13"
+                      font-family="'Inter','Segoe UI',system-ui,sans-serif">On path</text>
+                <circle cx="@(lx + 22)" cy="@(ly + 97)" r="5" fill="rgba(200,185,20,0.55)" stroke="#e6d620" stroke-width="1.8" />
+                <text x="@(lx + 38)" y="@(ly + 102)" fill="rgba(255,255,255,0.6)" font-size="13"
+                      font-family="'Inter','Segoe UI',system-ui,sans-serif">Explored</text>
+                <circle cx="@(lx + 22)" cy="@(ly + 122)" r="4" fill="rgba(55,52,48,0.75)" stroke="rgba(180,175,168,0.9)" stroke-width="1.5" />
+                <text x="@(lx + 38)" y="@(ly + 127)" fill="rgba(255,255,255,0.6)" font-size="13"
+                      font-family="'Inter','Segoe UI',system-ui,sans-serif">Inactive</text>
 
-			@if (Result != null) {
-				<div style="display: flex; flex-direction: column; gap: 5px;">
-					<span class="text-white fw-bold" style="font-size: 24px;">Algorithm</span>
-					<strong style="font-size: 16px; color: #0D6EFD;">@ActiveEngineName</strong>
-				</div>
-				<hr style="margin: 0; border-color: #333;" />
-				<div style="display: flex; flex-direction: column; gap: 5px;">
-					<span class="text-white fw-bold" style="font-size: 24px;">Explored Nodes</span>
-					<strong style="font-size: 24px; color: #ffc107;">@Result.NodesExploredCount</strong>
-				</div>
-				<hr style="margin: 0; border-color: #333;" />
-				<div style="display: flex; flex-direction: column; gap: 5px;">
-					<span class="text-white fw-bold" style="font-size: 24px">Execution Time</span>
-					<strong style="font-size: 24px; color: #0dcaf0;">@Result.ExecutionTime.TotalMilliseconds.ToString("F3") ms</strong>
-				</div>
-				<div style="display: flex; flex-direction: column; gap: 5px">
-					<span class="text-white fw-bold" style="font-size: 24px">Total Distance</span>
-					<strong style="font-size: 24px; color: #198754;">@Result.TotalDistance.ToString("F2")</strong>
-				</div>
-				<hr style="margin: 0; border-color: #333;" />
-			} else {
-				<div class="text-center my-auto text-white fw-bold" style="font-style: italic; font-size: 14px;">
-					Select endpoints and click "Find Path" to generate route metrics.
-				</div>
-			}
-		</div>
-	</div>
+                <text x="16" y="@(MapHeight - 16)" fill="rgba(255,255,255,0.25)" font-size="13"
+                      font-family="'Inter','Segoe UI',system-ui,sans-serif">@((ZoomScale * 100).ToString("F0"))%</text>
+            </g>
+
+        </svg>
+    </div>
 </div>
 
+<style>
+    .road-handle {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    }
+
+    svg:hover .road-handle {
+    opacity: 1;
+    }
+
+    .road-handle-inner {
+    pointer-events: none;
+    }
+    
+    .form-select option {
+        background-color: #212529;
+        color: #fff;
+    }
+    
+    .form-select:hover {
+        background-color: rgba(255, 255, 255, 0.12) !important;
+    }
+    
+    .form-select:focus {
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+        background-color: rgba(255, 255, 255, 0.07) !important;
+    }
+</style>
+
+
 @code{
-	private int MapWidth = 1920;
-	private int MapHeight = 1023;
+    private int MapWidth = 1920;
+    private int MapHeight = 1023;
 
-	private double MinLon = 39.8;
-	private double MaxLon = 46.9;
-	private double MinLat = 40.9;
-	private double MaxLat = 43.7;
+    private double MinLon = 39.8;
+    private double MaxLon = 46.9;
+    private double MinLat = 40.9;
+    private double MaxLat = 43.7;
 
-	private string SelectedAlgorithmKey { get; set; } = "BFS";
-	private string StartCity { get; set; } = "";
-	private string TargetCity { get; set; } = "";
-	private SearchResult Result { get; set; }
-	private string ActiveEngineName { get; set; } = "";
+    private string SelectedAlgorithmKey { get; set; }
+    private string StartCity { get; set; } = "";
+    private string TargetCity { get; set; } = "";
+    private SearchResult Result { get; set; }
+    private string ActiveEngineName { get; set; } = "";
 
-	private Road SelectedDraggingRoad { get; set; }
-	private City AssociatedCityA { get; set; }
-	private City AssociatedCityB { get; set; }
+    private Road SelectedDraggingRoad { get; set; }
+    private City AssociatedCityA { get; set; }
+    private City AssociatedCityB { get; set; }
 
-	private ElementReference SvgContainerReference;
+    private ElementReference SvgContainerReference;
 
-	private void RunSearch() {
-		if(!string.IsNullOrEmpty(StartCity) && !string.IsNullOrEmpty(TargetCity)) {
-			if(SelectedAlgorithmKey == "BFS") {
-				Result = BfsEngine.FindPath(StartCity, TargetCity);
-				ActiveEngineName = BfsEngine.Name;
-			} else if (SelectedAlgorithmKey == "ID_BIDS") {
-				Result = IdBiDfsEngine.FindPath(StartCity, TargetCity);
-				ActiveEngineName = IdBiDfsEngine.Name;
-			} else if (SelectedAlgorithmKey == "ASTAR") {
-				Result = AStarEngine.FindPath(StartCity, TargetCity);
-				ActiveEngineName = AStarEngine.Name;
-			}
-		}
-	}
+    private double ZoomScale = 1.0;
+    private double PanX = 0;
+    private double PanY = 0;
+    private const double MinZoom = 1.0;
+    private const double MaxZoom = 8.0;
 
-	private (double X, double Y) Project(City city) {
-		double pctX = (city.Lon - MinLon) / (MaxLon - MinLon);
-		double pctY = 1.0 - ((city.Lat - MinLat) / (MaxLat - MinLat));
+    private bool IsPanning = false;
+    private bool IsDraggingRoad = false;
+    private double LastPanX, LastPanY;
 
-		return (pctX * MapWidth, pctY * MapHeight);
-	}
+    private void RunSearch() {
+        if(!string.IsNullOrEmpty(StartCity) && !string.IsNullOrEmpty(TargetCity)) {
+            if (SelectedAlgorithmKey == "ID_BIDS") {
+                Result = IdBiDfsEngine.FindPath(StartCity, TargetCity);
+                ActiveEngineName = IdBiDfsEngine.Name;
+            } else if (SelectedAlgorithmKey == "ASTAR") {
+                Result = AStarEngine.FindPath(StartCity, TargetCity);
+                ActiveEngineName = AStarEngine.Name;
+            }
+        }
+    }
 
-	protected override void OnInitialized(){
-		foreach(var road in GeorgiaMap.Roads){
-			var cityA = GeorgiaMap.Cities.FirstOrDefault(c => c.Name == road.StartCity);
-			var cityB = GeorgiaMap.Cities.FirstOrDefault(c => c.Name == road.EndCity);
+    private void HandleWheel(WheelEventArgs e) {
+        double zoomFactor = e.DeltaY < 0 ? 1.12 : 1.0 / 1.12;
+        double newZoom = Math.Clamp(ZoomScale * zoomFactor, MinZoom, MaxZoom);
+        if (newZoom == ZoomScale) return;
 
-			if(cityA != null && cityB != null){
-				var posA = Project(cityA);
-				var posB = Project(cityB);
+        double cursorSvgX = e.OffsetX;
+        double cursorSvgY = e.OffsetY;
 
-				road.ControlX = (posA.X + posB.X) / 2;
-				road.ControlY = (posA.Y + posB.Y) / 2;
-			}
-		}
-	}
+        PanX = cursorSvgX - (cursorSvgX - PanX) * (newZoom / ZoomScale);
+        PanY = cursorSvgY - (cursorSvgY - PanY) * (newZoom / ZoomScale);
+        ZoomScale = newZoom;
 
-	private void HandlePointerDown(PointerEventArgs eventArgs, Road road, City a, City b) {
-		SelectedDraggingRoad = road;
-		AssociatedCityA = a;
-		AssociatedCityB = b;
-	}
+        ClampPan();
+        StateHasChanged();
+    }
 
-	private void HandlePointerMove(PointerEventArgs e) {
-		if(SelectedDraggingRoad == null) {
-			return;
-		}
+    private void HandleMapPointerDown(PointerEventArgs e) {
+        if (e.Button != 0 || IsDraggingRoad) return;
+        IsPanning = true;
+        LastPanX = e.ClientX;
+        LastPanY = e.ClientY;
+    }
 
-		double scaleFactorX = (double)MapWidth / 1400;
-		double scaleFactorY = (double)MapHeight / 745;
+    private void HandleMapPointerMove(PointerEventArgs e) {
+        if (IsDraggingRoad) {
+            HandlePointerMove(e);
+            return;
+        }
 
-		SelectedDraggingRoad.ControlX += (e.MovementX * scaleFactorX) * 2;
-		SelectedDraggingRoad.ControlY += (e.MovementY * scaleFactorY) * 2;
+        if (!IsPanning) return;
 
-		SelectedDraggingRoad.ControlX = Math.Clamp(SelectedDraggingRoad.ControlX, 0, MapWidth);
-		SelectedDraggingRoad.ControlY = Math.Clamp(SelectedDraggingRoad.ControlY, 0, MapHeight);
+        double dx = e.ClientX - LastPanX;
+        double dy = e.ClientY - LastPanY;
+        LastPanX = e.ClientX;
+        LastPanY = e.ClientY;
 
-		var posA = Project(AssociatedCityA);
-		var posB = Project(AssociatedCityB);
+        PanX += dx;
+        PanY += dy;
+        ClampPan();
+        StateHasChanged();
+    }
 
-		SelectedDraggingRoad.RecalculateBezierDistance(posA.X, posA.Y, posB.X, posB.Y);
-	}
+    private void HandleMapPointerUp(PointerEventArgs e) {
+        IsPanning = false;
+        if (IsDraggingRoad) {
+            HandlePointerUp(e);
+        }
+    }
 
-	private void HandlePointerUp(PointerEventArgs e) {
-		SelectedDraggingRoad = null;
-		AssociatedCityA = null;
-		AssociatedCityB = null;
-	}
+    private void HandleRoadHandleDown(PointerEventArgs e, Road road, City a, City b) {
+        IsDraggingRoad = true;
+        IsPanning = false;
+        HandlePointerDown(e, road, a, b);
+    }
 
-	private bool IsRoadInPath(string city1, string city2) {
-		if(Result == null || Result.Path == null || Result.Path.Count < 2) {
-			return false;
-		}
+    private void ClampPan() {
+        double maxPanX = (ZoomScale - 1.0) * MapWidth;
+        double maxPanY = (ZoomScale - 1.0) * MapHeight;
+        PanX = Math.Clamp(PanX, -maxPanX, 0);
+        PanY = Math.Clamp(PanY, -maxPanY, 0);
+    }
 
-		for (int i = 0; i < Result.Path.Count - 1; i++) {
-			string current = Result.Path[i];
-			string next = Result.Path[i + 1];
+    private (double X, double Y) Project(City city) {
+        double pctX = (city.Lon - MinLon) / (MaxLon - MinLon);
+        double pctY = 1.0 - ((city.Lat - MinLat) / (MaxLat - MinLat));
 
-			if ((current == city1 && next == city2) || (current == city2 && next == city1)) {
-				return true;
-			}
-		}
+        return (pctX * MapWidth, pctY * MapHeight);
+    }
 
-		return false;
-	}
+    protected override void OnInitialized(){
+        foreach(var road in GeorgiaMap.Roads){
+            var cityA = GeorgiaMap.Cities.FirstOrDefault(c => c.Name == road.StartCity);
+            var cityB = GeorgiaMap.Cities.FirstOrDefault(c => c.Name == road.EndCity);
+
+            if(cityA != null && cityB != null){
+                var posA = Project(cityA);
+                var posB = Project(cityB);
+
+                road.ControlX = (posA.X + posB.X) / 2;
+                road.ControlY = (posA.Y + posB.Y) / 2;
+
+                road.RecalculateBezierDistance(posA.X, posA.Y, posB.X, posB.Y);
+            }
+        }
+    }
+
+    private void HandlePointerDown(PointerEventArgs eventArgs, Road road, City a, City b) {
+        SelectedDraggingRoad = road;
+        AssociatedCityA = a;
+        AssociatedCityB = b;
+    }
+
+    private void HandlePointerMove(PointerEventArgs e) {
+        if(SelectedDraggingRoad == null) {
+            return;
+        }
+
+        double scaleFactorX = ((double)MapWidth / 1400.0) / ZoomScale;
+        double scaleFactorY = ((double)MapHeight / 745.0) / ZoomScale;
+
+        SelectedDraggingRoad.ControlX += (e.MovementX * scaleFactorX) * 2;
+        SelectedDraggingRoad.ControlY += (e.MovementY * scaleFactorY) * 2;
+
+        SelectedDraggingRoad.ControlX = Math.Clamp(SelectedDraggingRoad.ControlX, 0, MapWidth);
+        SelectedDraggingRoad.ControlY = Math.Clamp(SelectedDraggingRoad.ControlY, 0, MapHeight);
+
+        var posA = Project(AssociatedCityA);
+        var posB = Project(AssociatedCityB);
+
+        SelectedDraggingRoad.RecalculateBezierDistance(posA.X, posA.Y, posB.X, posB.Y);
+    }
+
+    private void HandlePointerUp(PointerEventArgs e) {
+        SelectedDraggingRoad = null;
+        AssociatedCityA = null;
+        AssociatedCityB = null;
+        IsDraggingRoad = false;
+    }
+
+    private bool IsRoadInPath(string city1, string city2) {
+        if(Result == null || Result.Path == null || Result.Path.Count < 2) {
+            return false;
+        }
+
+        for (int i = 0; i < Result.Path.Count - 1; i++) {
+            string current = Result.Path[i];
+            string next = Result.Path[i + 1];
+
+            if ((current == city1 && next == city2) || (current == city2 && next == city1)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
