@@ -46,8 +46,8 @@
         </div>
 
         <button class="btn btn-primary fw-bold px-4 text-uppercase" @onclick="RunSearch" 
-                disabled="@(string.IsNullOrEmpty(StartCity) || string.IsNullOrEmpty(TargetCity) || string.IsNullOrEmpty(SelectedAlgorithmKey) || IsSimulating)"
-                style="border-radius: 8px; background: linear-gradient(135deg, #007bff, #0052cc); border: none; height: 41px; font-size: 13px; letter-spacing: 0.5px; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(0, 123, 255, 0.25);">
+        disabled="@(string.IsNullOrEmpty(StartCity) || string.IsNullOrEmpty(TargetCity) || string.IsNullOrEmpty(SelectedAlgorithmKey) || IsSimulating)"
+        style="border-radius: 8px; background: linear-gradient(135deg, #007bff, #0052cc); border: none; height: 41px; font-size: 13px; letter-spacing: 0.5px; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(0, 123, 255, 0.25);">
             Find Path
         </button>
     </div>
@@ -79,17 +79,17 @@
 
     <div style="flex: 3; min-width: 600px; background-color: #111317; max-width: 1500px; max-height: 800px; border: 1px solid rgba(255,255,255,0.08); border-radius: 0 0 12px 12px; overflow: hidden; aspect-ratio: 1920 / 1023; box-shadow: 0 12px 40px rgba(0,0,0,0.55);">
         <svg id="map-svg"
-             width="100%" height="100%"
-             viewBox="0 0 @MapWidth @MapHeight"
-             preserveAspectRatio="xMidYMid slice"
-             @ref="SvgContainerReference"
-             @onpointerdown="HandleMapPointerDown"
-             @onpointermove="HandleMapPointerMove"
-             @onpointerup="HandleMapPointerUp"
-             @onpointerleave="HandleMapPointerUp"
-             @onwheel="HandleWheel"
-             @onwheel:preventDefault="true"
-             style="display:block; cursor: @(IsPanning ? "grabbing" : "grab"); touch-action: none;">
+        width="100%" height="100%"
+        viewBox="0 0 @MapWidth @MapHeight"
+        preserveAspectRatio="xMidYMid slice"
+        @ref="SvgContainerReference"
+        @onpointerdown="HandleMapPointerDown"
+        @onpointermove="HandleMapPointerMove"
+        @onpointerup="HandleMapPointerUp"
+        @onpointerleave="HandleMapPointerUp"
+        @onwheel="HandleWheel"
+        @onwheel:preventDefault="true"
+        style="display:block; cursor: @(IsPanning ? "grabbing" : "grab"); touch-action: none;">
 
             <defs>
                 <filter id="f-glow-cyan" x="-80%" y="-80%" width="260%" height="260%">
@@ -144,7 +144,7 @@
                             string darkGlowColor = isFinalShortestPath ? "#0a3d25" : "rgba(230,210,40,0.15)";
                             string outerFilterColor = isFinalShortestPath ? "#22c97e" : "rgba(255,220,80,0.35)";
                             string filterUrl = isFinalShortestPath ? "url(#f-glow-green)" : "url(#f-glow-yellow)";
-                            
+
                             int baseThickness = isFinalShortestPath ? 4 : 3;
                             int backgroundThickness = isFinalShortestPath ? 22 : 10;
                             int inlineTrackThickness = isFinalShortestPath ? 7 : 3;
@@ -153,7 +153,7 @@
                             <path d="M @x1 @y1 Q @road.ControlX @road.ControlY @x2 @y2" fill="none" stroke="@darkGlowColor" stroke-width="@backgroundThickness" stroke-linecap="round" opacity="@structuralOpacity" filter="@(isFinalShortestPath ? "url(#f-glow-green)" : null)" style="pointer-events:none;" />
                             <path d="M @x1 @y1 Q @road.ControlX @road.ControlY @x2 @y2" fill="none" stroke="@(isFinalShortestPath ? "#0a3d25" : darkGlowColor)" stroke-width="@inlineTrackThickness" stroke-linecap="round" stroke-dasharray="@totalPixelLength" stroke-dashoffset="@(totalPixelLength * (1 - progress))" style="pointer-events:none;" />
                             <path d="M @x1 @y1 Q @road.ControlX @road.ControlY @x2 @y2" fill="none" stroke="@coreColor" stroke-width="@baseThickness" stroke-linecap="round" stroke-dasharray="@totalPixelLength" stroke-dashoffset="@(totalPixelLength * (1 - progress))" style="pointer-events:none;" />
-                            
+
                             if (isFinalShortestPath) {
                                 <path d="M @x1 @y1 Q @road.ControlX @road.ControlY @x2 @y2" fill="none" stroke="#a8f0cc" stroke-width="1" stroke-linecap="round" stroke-dasharray="18 14" opacity="0.5" stroke-dashoffset="@(totalPixelLength * (1 - progress))" style="pointer-events:none;" />
                             } else {
@@ -275,23 +275,31 @@
 
             </g>
 
-            @{
-                int lx = MapWidth - 256;
-                int ly = MapHeight - 158;
-            }
             <g style="pointer-events: none;">
-                <rect x="@lx" y="@ly" width="236" height="140" rx="6" fill="rgba(6,9,20,0.75)" stroke="rgba(255,255,255,0.07)" stroke-width="1" />
+                @{
+                    double legendWidth = 236;
+                    double legendHeight = 140;
+                    double lx = MapWidth - legendWidth - 50;
+                    double ly = MapHeight - legendHeight - 50;
+                }
+
+                <rect x="@lx" y="@ly" width="@legendWidth" height="@legendHeight" rx="6" fill="rgba(6,9,20,0.75)" stroke="rgba(255,255,255,0.07)" stroke-width="1" />
                 <text x="@(lx + 15)" y="@(ly + 21)" fill="rgba(255,255,255,0.3)" font-size="10" font-family="'Inter','Segoe UI',system-ui,sans-serif" font-weight="600" letter-spacing="2">LEGEND</text>
+
                 <circle cx="@(lx + 22)" cy="@(ly + 43)" r="7" fill="rgba(0,180,185,0.55)" stroke="#00edf1" stroke-width="2" />
                 <text x="@(lx + 38)" y="@(ly + 48)" fill="rgba(255,255,255,0.6)" font-size="13" font-family="'Inter','Segoe UI',system-ui,sans-serif">Origin / Target</text>
+
                 <circle cx="@(lx + 22)" cy="@(ly + 70)" r="6" fill="rgba(34,180,100,0.55)" stroke="#22c97e" stroke-width="2" />
                 <text x="@(lx + 38)" y="@(ly + 75)" fill="rgba(255,255,255,0.6)" font-size="13" font-family="'Inter','Segoe UI',system-ui,sans-serif">On path</text>
+
                 <circle cx="@(lx + 22)" cy="@(ly + 97)" r="5" fill="rgba(200,185,20,0.55)" stroke="#e6d620" stroke-width="1.8" />
                 <text x="@(lx + 38)" y="@(ly + 102)" fill="rgba(255,255,255,0.6)" font-size="13" font-family="'Inter','Segoe UI',system-ui,sans-serif">Explored</text>
+
                 <circle cx="@(lx + 22)" cy="@(ly + 122)" r="4" fill="rgba(55,52,48,0.75)" stroke="rgba(180,175,168,0.9)" stroke-width="1.5" />
                 <text x="@(lx + 38)" y="@(ly + 127)" fill="rgba(255,255,255,0.6)" font-size="13" font-family="'Inter','Segoe UI',system-ui,sans-serif">Inactive</text>
 
-                <text x="16" y="@(MapHeight - 16)" fill="rgba(255,255,255,0.25)" font-size="13" font-family="'Inter','Segoe UI',system-ui,sans-serif">@((ZoomScale * 100).ToString("F0"))%</text>
+                <!-- Zoom text anchored to the exact bottom right corner margin -->
+                <text x="@(MapWidth - 25)" y="@(MapHeight - 12)" fill="rgba(255,255,255,0.25)" font-size="13" font-family="'Inter','Segoe UI',system-ui,sans-serif" text-anchor="end">@((ZoomScale * 100).ToString("F0"))%</text>
             </g>
 
         </svg>
